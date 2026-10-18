@@ -28,14 +28,19 @@ if ($name === '' || mb_strlen($name) > 100) {
 }
 
 if (!preg_match('/^\+?[0-9]{10,14}$/', $mobile)) {
-    $errors[] = 'Enter a valid mobile number.';
+    $errors[] = 'Enter a valid mobile number (10–14 digits, optionally starting with +).';
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 254) {
     $errors[] = 'Enter a valid email address.';
 }
 
-if ($collegeId === false || $collegeId === null || $collegeId < 1 || $collegeId > 5) {
+if (
+    $collegeId === false ||
+    $collegeId === null ||
+    $collegeId < 1 ||
+    $collegeId > 5
+) {
     $errors[] = 'Select a valid college.';
 }
 
@@ -47,15 +52,106 @@ if (mb_strlen($programDetails) > 5000) {
     $errors[] = 'Program details must be under 5000 characters.';
 }
 
+function renderPage(string $title, string $message, string $type = 'success', array $errors = []): void
+{
+    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+    $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+    $class = $type === 'success' ? 'success' : 'error';
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title><?= $safeTitle ?> | Student Connect</title>
+        <link rel="stylesheet" href="assets/css/style.css">
+        <style>
+            .result-wrapper {
+                min-height: 80vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 30px 16px;
+            }
+            .result-card {
+                width: 100%;
+                max-width: 560px;
+                padding: 36px;
+                border-radius: 16px;
+                background: #fff;
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.09);
+                text-align: center;
+            }
+            .result-icon {
+                font-size: 48px;
+                margin-bottom: 12px;
+            }
+            .result-card h1 {
+                margin-bottom: 12px;
+            }
+            .result-card p {
+                line-height: 1.6;
+            }
+            .result-card ul {
+                text-align: left;
+                margin: 16px 0;
+            }
+            .result-link {
+                display: inline-block;
+                margin-top: 18px;
+                padding: 12px 22px;
+                border-radius: 8px;
+                background: #2457d6;
+                color: #fff;
+                text-decoration: none;
+                font-weight: 600;
+            }
+            .result-link:hover {
+                background: #1945b3;
+            }
+            .result-card.error h1 {
+                color: #b42318;
+            }
+            @media (max-width: 480px) {
+                .result-card {
+                    padding: 24px 18px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <main class="result-wrapper">
+            <section class="result-card <?= $class ?>">
+                <div class="result-icon" aria-hidden="true">
+                    <?= $type === 'success' ? '✓' : '!' ?>
+                </div>
+                <h1><?= $safeTitle ?></h1>
+                <p><?= $safeMessage ?></p>
+
+                <?php if ($errors): ?>
+                    <ul>
+                        <?php foreach ($errors as $error): ?>
+                            <li><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+
+                <a class="result-link" href="index.php">Return to registration</a>
+            </section>
+        </main>
+    </body>
+    </html>
+    <?php
+}
+
 if ($errors) {
     http_response_code(400);
-    echo '<h2>Please correct these errors</h2><ul>';
-
-    foreach ($errors as $error) {
-        echo '<li>' . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . '</li>';
-    }
-
-    echo '</ul><p><a href="index.php">Return to registration</a></p>';
+    renderPage(
+        'Please correct these errors',
+        'Your registration was not submitted. Review the following details:',
+        'error',
+        $errors
+    );
     exit;
 }
 
@@ -75,20 +171,26 @@ try {
         ':program_details' => $programDetails !== '' ? $programDetails : null
     ]);
 
-    echo '<h1>Registration successful!</h1>';
-    echo '<p>Thank you for registering with Student Connect.</p>';
-    echo '<p><a href="index.php">Return to registration</a></p>';
+    renderPage(
+        'Registration Successful!',
+        'Thank you for registering with Student Connect. Your registration has been received.'
+    );
 
 } catch (PDOException $e) {
     if ($e->getCode() === '23000') {
         http_response_code(409);
-        echo '<h2>Registration could not be completed</h2>';
-        echo '<p>This mobile number or email address may already be registered.</p>';
-        echo '<p><a href="index.php">Return to registration</a></p>';
+        renderPage(
+            'Registration Could Not Be Completed',
+            'This mobile number or email address may already be registered.',
+            'error'
+        );
     } else {
         error_log('Student registration failed: ' . $e->getMessage());
         http_response_code(500);
-        echo '<h2>Something went wrong</h2>';
-        echo '<p>Please try again later.</p>';
+        renderPage(
+            'Something Went Wrong',
+            'Your registration could not be completed. Please try again later.',
+            'error'
+        );
     }
 }
