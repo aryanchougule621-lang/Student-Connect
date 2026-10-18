@@ -6,7 +6,7 @@ CREATE DATABASE IF NOT EXISTS student_connect
 USE student_connect;
 
 CREATE TABLE IF NOT EXISTS colleges (
-    college_id INT AUTO_INCREMENT PRIMARY KEY,
+    college_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     college_name VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
